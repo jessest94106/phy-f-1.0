@@ -519,4 +519,20 @@ int32_t xran_fs_get_symbol_type(uint32_t PortId, int32_t nCellIdx, int32_t nSlot
     return xran_fs_slot_symb_type[PortId][nCellIdx][nSfIdxMod][nSymbIdx];
 }
 
+uint32_t xran_fs_get_num_dl_sym_sp(uint32_t PortId, int32_t nCellIdx, int32_t nSlotdx)
+{
+    int32_t nSfIdxMod;
 
+    nSfIdxMod = xran_fs_slot_limit(PortId, nSlotdx) % ((xran_fs_num_slot_tdd_loop[PortId][nCellIdx] > 0) ? xran_fs_num_slot_tdd_loop[PortId][nCellIdx]: 1);
+
+    return xran_fs_num_dl_sym_sp[PortId][nCellIdx][nSfIdxMod];
+}
+
+uint32_t xran_fs_get_num_ul_sym_sp(uint32_t PortId, int32_t nCellIdx, int32_t nSlotdx)
+{
+    int32_t nSfIdxMod;
+
+    nSfIdxMod = xran_fs_slot_limit(PortId, nSlotdx) % ((xran_fs_num_slot_tdd_loop[PortId][nCellIdx] > 0) ? xran_fs_num_slot_tdd_loop[PortId][nCellIdx]: 1);
+
+    return xran_fs_num_ul_sym_sp[PortId][nCellIdx][nSfIdxMod];
+}

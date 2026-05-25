@@ -75,6 +75,8 @@ uint32_t xran_fs_slot_limit_init(uint32_t PortId, int32_t tti_interval_us);
 uint32_t xran_fs_get_max_slot(uint32_t PortId);
 uint32_t xran_fs_get_max_slot_SFN(uint32_t PortId);
 int32_t xran_fs_get_symbol_type(uint32_t PortId, int32_t nCellIdx, int32_t nSlotdx,  int32_t nSymbIdx);
+uint32_t xran_fs_get_num_dl_sym_sp(uint32_t PortId, int32_t nCellIdx, int32_t nSlotdx);
+uint32_t xran_fs_get_num_ul_sym_sp(uint32_t PortId, int32_t nCellIdx, int32_t nSlotdx);
 
 #ifdef __cplusplus
 }

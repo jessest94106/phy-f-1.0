@@ -141,8 +141,8 @@ extern "C" {
 #define XRAN_MAX_SECTIONS_PER_SYM    (XRAN_MAX_SECTIONS_PER_SLOT)  /**< Max number of different sections in single slot (section may be equal to RB allocation for UE) */
 #define XRAN_MIN_SECTIONS_PER_SYM    (XRAN_MIN_SECTIONS_PER_SLOT)  /**< Min number of different sections in single slot (section may be equal to RB allocation for UE) */
 
-#define XRAN_MAX_FRAGMENT            (4)   /**< Max number of fragmentations in single symbol */
-#define XRAN_MAX_SET_BFWS            (64)  /**< Assumed 64Ant, BFP 9bit with 9K jumbo frame */
+#define XRAN_MAX_FRAGMENT            (7)   /**< Max number of fragmentations in single symbol */
+#define XRAN_MAX_SET_BFWS            (1) //(64)  /**< Assumed 64Ant, BFP 9bit with 9K jumbo frame */
 
 #define XRAN_MAX_PKT_BURST (448+4) /**< 4x14x8 symbols per ms */
 #define XRAN_N_MAX_BUFFER_SEGMENT XRAN_MAX_PKT_BURST /**< Max number of segments per ms */
@@ -419,6 +419,7 @@ struct xran_io_cfg {
     uint16_t num_rxq;             /**< number of RX queues per VF */
     char *dpdk_dev[XRAN_VF_MAX]; /**< VFs devices  */
     char *bbdev_dev[1];      /**< BBDev dev name */
+    char *bbdev_vfio_vf_token[1];      /**< BBDev dev token */
     int32_t bbdev_mode;      /**< DPDK for BBDev */
     uint32_t dpdkIoVaMode;   /**< IOVA Mode */
     uint32_t dpdkMemorySize; /**< DPDK max memory allocation */
@@ -713,6 +714,7 @@ struct xran_fh_config {
     uint16_t max_sections_per_slot; /**< M-Plane settings for section */
     uint16_t max_sections_per_symbol; /**< M-Plane settings for section */
     int32_t RunSlotPrbMapBySymbolEnable; /**< enable prb mapping by symbol with multisection*/
+    uint8_t LiteOnIgnoreUPSectionIdEnable; /**< handle LiteOn issue where section id on UP packet is wrongly set to 13. */
 
     uint8_t dssEnable;  /**< enable DSS (extension-9) */
     uint8_t dssPeriod;  /**< DSS pattern period for LTE/NR */
@@ -1192,6 +1194,31 @@ int32_t xran_reg_physide_cb_by_dev_id(void *pHandle, xran_fh_tti_callback_fn Cb,
  *   current TTI number [0-7999]
  */
 int32_t xran_get_slot_idx (uint32_t PortId, uint32_t *nFrameIdx, uint32_t *nSubframeIdx,  uint32_t *nSlotIdx, uint64_t *nSecond);
+
+/**
+ * @ingroup xran
+ *
+ *   Function returns Frame, Subframe, Slot Number based on rx_tti
+ *
+ * @param tti
+ *    tti for which to compute Frame, Subframe, Slot
+ *
+ * @param nFrameIdx
+ *    Pointer to Frame number [0-99]
+ *
+ * @param nSubframeIdx
+ *    Pointer to Subframe number [0-10]
+ *
+ * @param nSlotIdx
+ *    Pointer to Slot number [0-7]
+ *
+ * @param nSecond
+ *    Pointer to current UTC second
+ *
+ * @return
+ *   current TTI number [0-7999]
+ */
+int32_t xran_get_slot_idx_from_tti(uint32_t tti, uint32_t *nFrameIdx, uint32_t *nSubframeIdx, uint32_t *nSlotIdx, uint64_t *nSecond);
 
 /**
  * @ingroup xran
