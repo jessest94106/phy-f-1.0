@@ -139,6 +139,11 @@ namespace BFP_UPlane_9b16RB
 void
 BlockFloatCompander::BFPCompressUserPlaneAvx512_9b16RB(const ExpandedData& dataIn, CompressedData* dataOut)
 {
+  if (dataIn.numBlocks != 16) {
+    BlockFloatCompander::BFPCompressUserPlaneAvx512(dataIn, dataOut);
+    return;
+  }
+
   /// Compensation for extra zeros in 32b leading zero count when computing exponent
   const auto totShiftBits9 = _mm512_set1_epi32(24);
 
@@ -158,6 +163,11 @@ BlockFloatCompander::BFPCompressUserPlaneAvx512_9b16RB(const ExpandedData& dataI
 void
 BlockFloatCompander::BFPExpandUserPlaneAvx512_9b16RB(const CompressedData& dataIn, ExpandedData* dataOut)
 {
+  if (dataIn.numBlocks != 16) {
+    BlockFloatCompander::BFPExpandUserPlaneAvx512(dataIn, dataOut);
+    return;
+  }
+
   constexpr int k_totNumBytesPerRB9 = 28;
   constexpr int k_maxExpShift9 = 7;
   BFP_UPlane_9b16RB::expandByAllocN<BlockFloatCompander::networkByteUnpack9b>(dataIn, dataOut, k_totNumBytesPerRB9, k_maxExpShift9);
