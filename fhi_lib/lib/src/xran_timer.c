@@ -91,6 +91,49 @@ static uint8_t slots_per_subframe[4] =
     8,  /* mu = 3 */
 };
 
+/* --- Non-real-time time dilation (XRAN_TIMESCALE) -------------------------
+ * When XRAN_TIMESCALE != 1.0, xran's OTA clock advances at
+ * timescale*wallclock, so the whole O-RAN split can run slower (timescale<1)
+ * or faster (>1) than real time while keeping identical *simulated* slot/
+ * symbol timing. This is the FH-side counterpart of vrtsim's --vrtsim.timescale;
+ * set both to the same value (and on both O-DU and O-RU).
+ *
+ * A common XRAN_TIME_EPOCH (same integer-second value exported to BOTH the
+ * O-DU and O-RU) makes their virtual clocks identical, so their per-second
+ * SFN re-anchor (the 1-PPS reset below) stays aligned across the FH link.
+ * timescale==1.0 -> byte-identical real-time behavior (plain clock_gettime). */
+static double   g_xran_timescale = 1.0;
+static int64_t  g_xran_epoch_ns  = 0;
+static int      g_xran_ts_init   = 0;
+
+static void xran_timescale_init(void)
+{
+    const char *ts = getenv("XRAN_TIMESCALE");
+    const char *ep = getenv("XRAN_TIME_EPOCH");
+    g_xran_timescale = (ts && atof(ts) > 0.0) ? atof(ts) : 1.0;
+    g_xran_epoch_ns  = ep ? (int64_t)strtoll(ep, NULL, 10) * NSEC_PER_SEC : 0;
+    g_xran_ts_init   = 1;
+    printf("XRAN timescale = %.4f (epoch_s=%lld) %s\n",
+           g_xran_timescale, (long long)(g_xran_epoch_ns / NSEC_PER_SEC),
+           (g_xran_timescale == 1.0) ? "[real-time]" : "[NON-REAL-TIME dilation]");
+}
+
+/* Scaled (virtual) CLOCK_REALTIME. At timescale 1.0 this is exactly
+ * clock_gettime(CLOCK_REALTIME) (no math, no behavior change). */
+static inline void xran_scaled_clock(struct timespec *out)
+{
+    if (!g_xran_ts_init)
+        xran_timescale_init();
+    clock_gettime(CLOCK_REALTIME, out);
+    if (g_xran_timescale == 1.0)
+        return;
+    int64_t raw_ns  = (int64_t)out->tv_sec * NSEC_PER_SEC + out->tv_nsec;
+    int64_t virt_ns = g_xran_epoch_ns
+                    + (int64_t)((double)(raw_ns - g_xran_epoch_ns) * g_xran_timescale);
+    out->tv_sec  = virt_ns / NSEC_PER_SEC;
+    out->tv_nsec = virt_ns % NSEC_PER_SEC;
+}
+
 uint64_t timing_get_current_second(void)
 {
     return current_second;
@@ -194,7 +237,7 @@ long poll_next_tick(long interval_ns, unsigned long *used_tick)
     int i;
 
     if(counter == 0) {
-       clock_gettime(CLOCK_REALTIME, p_last_time);
+       xran_scaled_clock(p_last_time);
        last_tick = MLogTick();
        if(unlikely(p_xran_dev_ctx->offset_sec || p_xran_dev_ctx->offset_nsec))
            timing_adjust_gps_second(p_last_time);
@@ -205,7 +248,7 @@ long poll_next_tick(long interval_ns, unsigned long *used_tick)
     target_time = (p_last_time->tv_sec * NSEC_PER_SEC + p_last_time->tv_nsec + interval_ns);
 
     while(1) {
-        clock_gettime(CLOCK_REALTIME, p_cur_time);
+        xran_scaled_clock(p_cur_time);
         curr_tick = MLogTick();
         if(unlikely(p_xran_dev_ctx->offset_sec || p_xran_dev_ctx->offset_nsec))
             timing_adjust_gps_second(p_cur_time);
