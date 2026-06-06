@@ -51,6 +51,33 @@
 
 typedef void (*rx_dpdk_sym_cb_fn)(struct rte_timer *tim, void *arg);
 
+/* Timescale-aware timer dispatch.
+ *
+ * xran offloads per-symbol work (CP gen, UL deadline processing, user sym cbs) to worker
+ * lcores via an rte_timer armed with 0 ticks ("run ASAP on this lcore"). The rte_timer
+ * subsystem is serviced by rte_timer_manage() on the worker, which is driven by the real
+ * (un-dilated) TSC. Under XRAN_TIMESCALE dilation the OTA symbol clock is slowed
+ * (xran_scaled_clock) but the worker's TSC is not, so the two desync: the previously-armed
+ * timer is frequently still RUNNING when the next (slowed) OTA symbol re-arms it, and
+ * rte_timer_reset_sync() spins forever waiting for that RUNNING state -> the DU timing
+ * thread deadlocks.
+ *
+ * Dilation gives the timing thread spare wall-time per OTA symbol, so the robust fix is to
+ * NOT offload under dilation: run the callback inline on the (slowed) timing thread. This
+ * removes the rte_timer/real-TSC dependency entirely while preserving correct OTA timing
+ * (the dispatch point is still the dilated symbol clock). At timescale 1.0 we keep the
+ * original offload-to-worker behaviour unchanged. */
+static inline void xran_arm_or_run_inline(struct rte_timer *tim, unsigned tim_lcore,
+                                          rte_timer_cb_t fct, void *cb_arg)
+{
+    extern double xran_get_timescale(void);
+    if (xran_get_timescale() == 1.0) {
+        rte_timer_reset_sync(tim, 0, SINGLE, tim_lcore, fct, cb_arg);
+    } else {
+        fct(tim, cb_arg);
+    }
+}
+
 void xran_timer_arm(struct rte_timer *tim, void* arg, void *p_dev_ctx)
 {
     struct xran_device_ctx * p_xran_dev_ctx = (struct xran_device_ctx *)p_dev_ctx;
@@ -58,7 +85,7 @@ void xran_timer_arm(struct rte_timer *tim, void* arg, void *p_dev_ctx)
 
     if (xran_if_current_state == XRAN_RUNNING){
         rte_timer_cb_t fct = (rte_timer_cb_t)arg;
-        rte_timer_reset_sync(tim, 0, SINGLE, p_xran_dev_ctx->fh_init.io_cfg.timing_core, fct, p_dev_ctx);
+        xran_arm_or_run_inline(tim, p_xran_dev_ctx->fh_init.io_cfg.timing_core, fct, p_dev_ctx);
     }
     MLogXRANTask(PID_TIME_ARM_TIMER, t3, MLogXRANTick());
 }
@@ -72,7 +99,7 @@ void xran_timer_arm_cp_dl(struct rte_timer *tim, void* arg, void *p_dev_ctx)
 
     if (xran_if_current_state == XRAN_RUNNING){
         rte_timer_cb_t fct = (rte_timer_cb_t)arg;
-        rte_timer_reset_sync(tim, 0, SINGLE, tim_lcore, fct, p_dev_ctx);
+        xran_arm_or_run_inline(tim, tim_lcore, fct, p_dev_ctx);
     }
     MLogXRANTask(PID_TIME_ARM_TIMER, t3, MLogXRANTick());
 }
@@ -86,7 +113,7 @@ void xran_timer_arm_cp_ul(struct rte_timer *tim, void* arg, void *p_dev_ctx)
 
     if (xran_if_current_state == XRAN_RUNNING){
         rte_timer_cb_t fct = (rte_timer_cb_t)arg;
-        rte_timer_reset_sync(tim, 0, SINGLE, tim_lcore, fct, p_dev_ctx);
+        xran_arm_or_run_inline(tim, tim_lcore, fct, p_dev_ctx);
     }
     MLogXRANTask(PID_TIME_ARM_TIMER, t3, MLogXRANTick());
 }
@@ -118,7 +145,7 @@ void xran_timer_arm_for_deadline(struct rte_timer *tim, void* arg,  void *p_dev_
     p_xran_dev_ctx->cb_timer_ctx[p_xran_dev_ctx->timer_put %  MAX_CB_TIMER_CTX].tti_to_process = rx_tti;
     if (xran_if_current_state == XRAN_RUNNING){
         rte_timer_cb_t fct = (rte_timer_cb_t)arg;
-        rte_timer_reset_sync(tim, 0, SINGLE, tim_lcore, fct, p_xran_dev_ctx);
+        xran_arm_or_run_inline(tim, tim_lcore, fct, p_xran_dev_ctx);
     }
 
     MLogXRANTask(PID_TIME_ARM_TIMER_DEADLINE, t3, MLogXRANTick());
@@ -150,7 +177,7 @@ void xran_timer_arm_user_cb(struct rte_timer *tim, void* arg,  void *p_ctx)
 
     if (xran_if_current_state == XRAN_RUNNING){
         rte_timer_cb_t fct = (rte_timer_cb_t)arg;
-        rte_timer_reset_sync(tim, 0, SINGLE, tim_lcore, fct, p_sym_cb_ctx);
+        xran_arm_or_run_inline(tim, tim_lcore, fct, p_sym_cb_ctx);
         if (++p_sym_cb_ctx->user_timer_put >= MAX_CB_TIMER_CTX)
             p_sym_cb_ctx->user_timer_put = 0;
     }
@@ -164,7 +191,7 @@ void xran_timer_arm_ex(struct rte_timer *tim, void* CbFct, void *CbArg, unsigned
 
     if (xran_if_current_state == XRAN_RUNNING){
         rte_timer_cb_t fct = (rte_timer_cb_t)CbFct;
-        rte_timer_reset_sync(tim, 0, SINGLE, tim_lcore, fct, CbArg);
+        xran_arm_or_run_inline(tim, tim_lcore, fct, CbArg);
     }
     MLogXRANTask(PID_TIME_ARM_TIMER, t3, MLogXRANTick());
 }

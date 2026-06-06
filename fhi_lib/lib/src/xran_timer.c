@@ -134,6 +134,13 @@ static inline void xran_scaled_clock(struct timespec *out)
     out->tv_nsec = virt_ns % NSEC_PER_SEC;
 }
 
+double xran_get_timescale(void)
+{
+    if (!g_xran_ts_init)
+        xran_timescale_init();
+    return g_xran_timescale;
+}
+
 uint64_t timing_get_current_second(void)
 {
     return current_second;
