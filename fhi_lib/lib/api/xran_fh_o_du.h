@@ -141,7 +141,7 @@ extern "C" {
 #define XRAN_MAX_SECTIONS_PER_SYM    (XRAN_MAX_SECTIONS_PER_SLOT)  /**< Max number of different sections in single slot (section may be equal to RB allocation for UE) */
 #define XRAN_MIN_SECTIONS_PER_SYM    (XRAN_MIN_SECTIONS_PER_SLOT)  /**< Min number of different sections in single slot (section may be equal to RB allocation for UE) */
 
-#define XRAN_MAX_FRAGMENT            (7)   /**< Max number of fragmentations in single symbol */
+#define XRAN_MAX_FRAGMENT            (16)   /**< Max number of fragmentations in single symbol (raised 7->16 to remove the wide-BW/4x4 UL sec_desc overflow; sec_desc[14][16] per prb_elm ~5.5KB) */
 #define XRAN_MAX_SET_BFWS            (1) //(64)  /**< Assumed 64Ant, BFP 9bit with 9K jumbo frame */
 
 #define XRAN_MAX_PKT_BURST (448+4) /**< 4x14x8 symbols per ms */
