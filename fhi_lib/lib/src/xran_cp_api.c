@@ -87,7 +87,7 @@ xran_cp_init_sectiondb(void *pHandle)
             for (ctx = 0; ctx < XRAN_MAX_SECTIONDB_CTX; ctx++) {
                 for (dir = 0; dir < XRAN_DIR_MAX; dir++) {
                     for (cc = 0; cc < p_dev->fh_cfg.nCC && cc < XRAN_COMPONENT_CARRIERS_MAX; cc++) {
-                        for (ant = 0; ant < (p_dev->fh_cfg.neAxc*2 + p_dev->fh_cfg.nAntElmTRx) && ant < (XRAN_MAX_ANTENNA_NR*2 + XRAN_MAX_ANT_ARRAY_ELM_NR); ant++) {
+                        for (ant = 0; ant < (RTE_MAX(p_dev->fh_cfg.neAxc, p_dev->fh_cfg.neAxcUl)*2 + p_dev->fh_cfg.nAntElmTRx) /* asym CAT_A: UL ports 0..neAxcUl-1 + PRACH offset */ && ant < (XRAN_MAX_ANTENNA_NR*2 + XRAN_MAX_ANT_ARRAY_ELM_NR); ant++) {
                             p_sec_db_elm = (struct xran_sectioninfo_db*)rte_zmalloc(NULL,sizeof(struct xran_sectioninfo_db), 0);
                             if(p_sec_db_elm) {
                                 memset(p_sec_db_elm, 0, sizeof(struct xran_sectioninfo_db));
@@ -111,7 +111,7 @@ xran_cp_init_sectiondb(void *pHandle)
     for(ctx=0; ctx < XRAN_MAX_SECTIONDB_CTX; ctx++)
         for(dir=0; dir < XRAN_DIR_MAX; dir++)
             for (cc = 0; cc < p_dev->fh_cfg.nCC && cc < XRAN_COMPONENT_CARRIERS_MAX; cc++)
-                for (ant = 0; ant < (p_dev->fh_cfg.neAxc*2 + p_dev->fh_cfg.nAntElmTRx) && ant < (XRAN_MAX_ANTENNA_NR*2 + XRAN_MAX_ANT_ARRAY_ELM_NR); ant++)
+                for (ant = 0; ant < (RTE_MAX(p_dev->fh_cfg.neAxc, p_dev->fh_cfg.neAxcUl)*2 + p_dev->fh_cfg.nAntElmTRx) /* asym CAT_A: UL ports 0..neAxcUl-1 + PRACH offset */ && ant < (XRAN_MAX_ANTENNA_NR*2 + XRAN_MAX_ANT_ARRAY_ELM_NR); ant++)
                     if(p_sec_db->p_sectiondb_elm[ctx][dir][cc][ant])
                         p_sec_db->p_sectiondb_elm[ctx][dir][cc][ant]->cur_index = 0;
 

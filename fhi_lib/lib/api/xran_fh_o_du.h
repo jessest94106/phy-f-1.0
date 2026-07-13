@@ -108,7 +108,7 @@ extern "C" {
 
 #define XRAN_PORTS_NUM               (8)    /**< number of XRAN ports (aka O-RU|O-DU devices) supported */
 #define XRAN_ETH_PF_LINKS_NUM        (4)    /**< number of Physical Ethernet links per one O-RU|O-DU */
-#define XRAN_MAX_PRACH_ANT_NUM       (4)    /**< number of XRAN Prach ports supported */
+#define XRAN_MAX_PRACH_ANT_NUM       (16)   /* was 4; PRACH RX buffers are [XRAN_MAX_ANTENNA_NR]=16 — 8-RX UL crashed on NULL ant>=4 */    /**< number of XRAN Prach ports supported */
 
 #if defined(XRAN_O_RU_BUILD)
     #define XRAN_N_FE_BUF_LEN            (20)   /**< Number of TTIs (slots) */

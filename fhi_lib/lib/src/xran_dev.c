@@ -395,10 +395,12 @@ xran_init_vf_rxq_to_pcid_mapping(void *pHandle)
 
     num_cc = xran_get_num_cc(p_dev);
 
-    if(xran_get_ru_category(pHandle) == XRAN_CATEGORY_A)
+    /* Queues serve BOTH directions: with CAT_A asymmetric UL (nonzero neAxcUl) size by the
+       larger count so 8 UL flows (+PRACH) each get a queue. neAxcUl==0 = stock behavior. */
+    if(xran_get_ru_category(pHandle) == XRAN_CATEGORY_A && xran_get_num_eAxcUl(p_dev) == 0)
         num_eAxc = xran_get_num_eAxc(p_dev);
     else
-        num_eAxc = xran_get_num_eAxcUl(p_dev);
+        num_eAxc = RTE_MAX(xran_get_num_eAxc(p_dev), xran_get_num_eAxcUl(p_dev));
 
     num_eAxc *= 2; /* +PRACH */
     num_eAxc += xran_get_num_ant_elm(p_dev); /* +SRS */

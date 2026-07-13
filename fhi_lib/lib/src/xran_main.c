@@ -1135,7 +1135,9 @@ xran_prepare_cp_ul_slot(uint16_t xran_port_id, uint32_t nSlotIdx,  uint32_t nCcS
         /* Wrap around to next second */
         if(tti == 0)
             frame_id = (frame_id + NUM_OF_FRAMES_PER_SECOND) & 0x3ff;
-        if(xran_get_ru_category(pHandle) == XRAN_CATEGORY_A)
+        /* CAT_A with nonzero neAxcUl = asymmetric DL/UL eAxC (e.g. 1 DL / 8 UL massive-MIMO
+           UL); neAxcUl==0 preserves stock CAT_A behavior (UL count = neAxc). */
+        if(xran_get_ru_category(pHandle) == XRAN_CATEGORY_A && xran_get_num_eAxcUl(pHandle) == 0)
             num_eAxc = xran_get_num_eAxc(pHandle);
         else
             num_eAxc = xran_get_num_eAxcUl(pHandle);
@@ -1318,7 +1320,8 @@ tx_cp_ul_cb(struct rte_timer *tim, void *arg)
             prev_ul_tti = tti;
         }
 
-    if(xran_get_ru_category(pHandle) == XRAN_CATEGORY_A)
+    /* CAT_A asymmetric UL eAxC: see comment at the sibling site above. */
+    if(xran_get_ru_category(pHandle) == XRAN_CATEGORY_A && xran_get_num_eAxcUl(pHandle) == 0)
         num_eAxc    = xran_get_num_eAxc(pHandle);
     else
         num_eAxc    = xran_get_num_eAxcUl(pHandle);
