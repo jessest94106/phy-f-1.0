@@ -202,6 +202,12 @@ else
 	DEF += -UXRAN_O_RU_BUILD
 endif
 
+# Cat-B debug: turn on xran's error prints. print_err() is compiled to NOTHING unless this
+# is defined (src/xran_printf.h:62-66), which means a failing xran path is completely silent —
+# an absent error message proves nothing about whether the code ran. Enabled to diagnose the
+# UL C-plane BFW segfault.
+DEF += -DPRINTF_ERR_OK
+
 #DEF += -DFCN_ADAPT
 #DEF += -DFCN_1_2_6_EARLIER
 
